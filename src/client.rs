@@ -15,8 +15,8 @@ use std::sync::atomic::Ordering;
 use std::sync::atomic::{AtomicBool, AtomicU16};
 use std::sync::LazyLock;
 use wreq::redirect::Policy;
-use wreq::{header as wreq_header, Client as WreqClient, EmulationFactory, Method, Response as WreqResponse};
-use wreq_util::{Emulation, EmulationOS, EmulationOption};
+use wreq::{header as wreq_header, Client as WreqClient, Method, Response as WreqResponse};
+use wreq_util::{Emulation, Platform};
 
 const REDDIT_URL_BASE: &str = "https://oauth.reddit.com";
 const REDDIT_URL_BASE_HOST: &str = "oauth.reddit.com";
@@ -48,17 +48,15 @@ pub fn build_client() -> WreqClient {
 	// Keeping this list short to aid in privacy.
 	// The more emulations, the more unique a fingerprint each instance has.
 	// But some emulations should increase evasiveness.
-	let emulation = [Emulation::Chrome145, Emulation::Firefox147];
-	let emulation_os = [EmulationOS::Android, EmulationOS::Windows];
+	let profiles = [Emulation::Chrome145, Emulation::Firefox147];
+	let platforms = [Platform::Android, Platform::Windows];
 
 	let rand = fastrand::usize(..);
-	let emulation = EmulationOption::builder()
-		.emulation(emulation[rand % emulation.len()])
-		.emulation_os(emulation_os[rand % emulation_os.len()])
-		.build()
-		.emulation();
+	let profile = profiles[rand % profiles.len()];
+	let platform = platforms[rand % platforms.len()];
+	let emulation = Emulation::builder().profile(profile).platform(platform).build();
 
-	info!("Building Wreq client with random emulation {:?}", emulation);
+	info!("Building Wreq client with random emulation {:?} on {:?}", profile, platform);
 	WreqClient::builder()
 		.emulation(emulation)
 		.redirect(Policy::none())
@@ -512,11 +510,13 @@ mod tests {
 	const POPULAR_URL: &str = "/r/popular/hot.json?&raw_json=1&geo_filter=GLOBAL";
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_rate_limit_check() {
 		rate_limit_check().await.unwrap();
 	}
 
 	#[test]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	#[sealed_test(env = [("REDLIB_DEFAULT_SUBSCRIPTIONS", "rust")])]
 	fn test_default_subscriptions() {
 		tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(async {
@@ -529,12 +529,14 @@ mod tests {
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_localization_popular() {
 		let val = json(POPULAR_URL.to_string(), false).await.unwrap();
 		assert_eq!("GLOBAL", val["data"]["geo_filter"].as_str().unwrap());
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_obfuscated_share_link() {
 		let share_link = "/r/rust/s/kPgq8WNHRK".into();
 		// Correct link without share parameters
@@ -543,6 +545,7 @@ mod tests {
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_private_sub() {
 		let link = json("/r/suicide/about.json?raw_json=1".into(), true).await;
 		assert!(link.is_err());
@@ -550,6 +553,7 @@ mod tests {
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_banned_sub() {
 		let link = json("/r/aaa/about.json?raw_json=1".into(), true).await;
 		assert!(link.is_err());
@@ -557,6 +561,7 @@ mod tests {
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_gated_sub() {
 		// quarantine to false to specifically catch when we _don't_ catch it
 		let link = json("/r/drugs/about.json?raw_json=1".into(), false).await;

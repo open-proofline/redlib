@@ -188,6 +188,7 @@ mod tests {
 	use super::*;
 
 	#[tokio::test(flavor = "multi_thread")]
+	#[ignore = "requires live Reddit/OAuth network access"]
 	async fn test_fetching_user() {
 		let user = user("spez").await;
 		assert!(user.is_ok());
