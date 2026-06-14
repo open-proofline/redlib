@@ -32,7 +32,6 @@
        - [Server](#server)
 5. [Deployment](#deployment)
    - [Docker](#docker)
-     - [Docker Compose](#docker-compose)
      - [Docker CLI](#docker-cli)
    - Podman 
       - Quadlets
@@ -64,7 +63,7 @@ For information on instance uptime, see the [Uptime Robot status page](https://s
 # About
 
 > [!NOTE]
-> Find Redlib on 💬 [Matrix](https://matrix.to/#/#redlib:matrix.org), 🐋 [Quay.io](https://quay.io/repository/redlib/redlib), :octocat: [GitHub](https://github.com/redlib-org/redlib), and 🦊 [GitLab](https://gitlab.com/redlib/redlib).
+> Find Redlib on 💬 [Matrix](https://matrix.to/#/#redlib:matrix.org), 🐋 [GHCR](https://github.com/open-proofline/redlib/pkgs/container/redlib), :octocat: [GitHub](https://github.com/redlib-org/redlib), and 🦊 [GitLab](https://gitlab.com/redlib/redlib).
 
 Redlib hopes to provide an easier way to browse Reddit, without the ads, trackers, and bloat. Redlib was inspired by other alternative front-ends to popular services such as [Invidious](https://github.com/iv-org/invidious) for YouTube, [Nitter](https://github.com/zedeus/nitter) for Twitter, and [Bibliogram](https://sr.ht/~cadence/bibliogram/) for Instagram.
 
@@ -164,7 +163,7 @@ For transparency, I hope to describe all the ways Redlib handles user privacy.
 
 # Deployment
 
-This section covers multiple ways of deploying Redlib. Using [Docker](#docker) is recommended for production.
+This section covers multiple ways of deploying Redlib. Using [Docker](#docker) is the supported container path for this fork.
 
 For configuration options, see the [Configuration section](#Configuration).
 
@@ -172,41 +171,30 @@ For configuration options, see the [Configuration section](#Configuration).
 
 [Docker](https://www.docker.com) lets you run containerized applications. Containers are loosely isolated environments that are lightweight and contain everything needed to run the application, so there's no need to rely on what's installed on the host.
 
-Container images for Redlib are available at [quay.io](https://quay.io/repository/redlib/redlib), with support for `amd64`, `arm64`, and `armv7` platforms.
+Container images for this Proofline-operated fork are published at `ghcr.io/open-proofline/redlib` from `main` and maintainer-triggered manual publishes. This is a best-effort public community-service fork and is separate from Proofline safety, evidence, account, and protocol infrastructure.
 
-### Docker Compose
+Available fork image tags include:
 
-> [!IMPORTANT]
-> These instructions assume the [Compose plugin](https://docs.docker.com/compose/migrate/#what-are-the-differences-between-compose-v1-and-compose-v2) has already been installed. If not, follow these [instructions on the Docker Docs](https://docs.docker.com/compose/install) for how to do so.
+- `latest` and `main` from the current `main` branch image.
+- `sha-<commit>` for a specific fork commit.
+- `upstream-<version>`, where `<version>` is the Redlib package version from `Cargo.toml`.
 
-Copy `compose.yaml` and modify any relevant values (for example, the ports Redlib should listen on).
-
-Start Redlib in detached mode (running in the background):
-
-```bash
-docker compose up -d
-```
-
-Stream logs from the Redlib container:
-
-```bash
-docker logs -f redlib
-```
+The `upstream-<version>` tag identifies the upstream Redlib base version and is updated as this fork imports newer upstream Redlib releases. It is not a Proofline Redlib release tag.
 
 ### Docker CLI
 
 Deploy Redlib:
 
 ```bash
-docker pull quay.io/redlib/redlib:latest
-docker run -d --name redlib -p 8080:8080 quay.io/redlib/redlib:latest
+docker pull ghcr.io/open-proofline/redlib:latest
+docker run -d --name redlib -p 8080:8080 ghcr.io/open-proofline/redlib:latest
 ```
 
 Deploy using a different port on the host (in this case, port 80):
 
 ```bash
-docker pull quay.io/redlib/redlib:latest
-docker run -d --name redlib -p 80:8080 quay.io/redlib/redlib:latest
+docker pull ghcr.io/open-proofline/redlib:main
+docker run -d --name redlib -p 80:8080 ghcr.io/open-proofline/redlib:main
 ```
 
 If you're using a reverse proxy in front of Redlib, prefix the port numbers with `127.0.0.1` so that Redlib only listens on the host port **locally**. For example, if the host port for Redlib is `8080`, specify `127.0.0.1:8080:8080`.
@@ -220,7 +208,7 @@ docker logs -f redlib
 
 [Podman](https://podman.io/) lets you run containerized applications in a rootless fashion. Containers are loosely isolated environments that are lightweight and contain everything needed to run the application, so there's no need to rely on what's installed on the host.
 
-Container images for Redlib are available at [quay.io](https://quay.io/repository/redlib/redlib), with support for `amd64`, `arm64`, and `armv7` platforms.
+Container images for this Proofline-operated fork are published at `ghcr.io/open-proofline/redlib` from `main` and maintainer-triggered manual publishes.
 
 ### Quadlets
 
@@ -381,17 +369,15 @@ REDLIB_DEFAULT_USE_HLS = "on"
 ```
 
 > [!NOTE]
-> If you're deploying Redlib using the **Docker CLI or Docker Compose**, environment variables can be defined in a [`.env` file](https://docs.docker.com/compose/environment-variables/set-environment-variables/), allowing you to centralize and manage configuration in one place.
+> If you're deploying Redlib using the **Docker CLI**, environment variables can be defined in a [`.env` file](https://docs.docker.com/compose/environment-variables/set-environment-variables/), allowing you to centralize and manage configuration in one place.
 >
 > To configure Redlib using a `.env` file, copy the `.env.example` file to `.env` and edit it accordingly.
 >
 > If using the Docker CLI, add ` --env-file .env` to the command that runs Redlib. For example:
 >
 > ```bash
-> docker run -d --name redlib -p 8080:8080 --env-file .env quay.io/redlib/redlib:latest
+> docker run -d --name redlib -p 8080:8080 --env-file .env ghcr.io/open-proofline/redlib:main
 > ```
->
-> If using Docker Compose, no changes are needed as the `.env` file is already referenced in `compose.yaml` via the `env_file: .env` line.
 
 ## Command Line Flags
 

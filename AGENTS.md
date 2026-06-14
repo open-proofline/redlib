@@ -22,8 +22,8 @@
 - `Cargo.toml` declares Rust 1.81 as the minimum supported Rust version.
 - Templates live under `templates/`; static assets live under `static/`.
 - Inline Rust tests live in `src/`; there is no top-level `tests/` directory.
-- Dockerfiles are present at `Dockerfile`, `Dockerfile.alpine`, and `Dockerfile.ubuntu`.
-- GitHub Actions workflows are not currently present; replacement CI is future work unless explicitly scoped.
+- The root `Dockerfile` is the single supported container build path.
+- GitHub Actions CI is present in `.github/workflows/ci.yml`; image publishing is limited to `main` pushes and maintainer-triggered manual publishes.
 - Runtime and packaging examples include `.env.example`, `redlib.container`, `contrib/`, `flake.nix`, and `seccomp-redlib.json`.
 - The upstream remote, when present, should point at `redlib-org/redlib`; verify remotes before assuming branch or fork state.
 
@@ -33,9 +33,9 @@ From the repository root:
 
 ```bash
 cargo fmt --check
-cargo check
-cargo test
-cargo clippy --all-targets --all-features
+cargo check --locked
+cargo test --locked
+cargo clippy --all-targets --all-features --locked -- -D warnings
 cargo build --release
 git diff --check
 ```

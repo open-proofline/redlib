@@ -91,7 +91,7 @@ Core constraints:
 - Keep public community-service docs clear that the service is best-effort and separate from Proofline safety/evidence/account systems.
 - Do not include private deployment details, residential IPs, Cloudflare tunnel IDs, private hostnames, VLAN details, tokens, secrets, credentials, request bodies, raw logs containing user data, exploit details, abuse/evasion instructions, or sensitive operator details in public docs, tests, screenshots, logs, issues, PRs, or Codex artifacts.
 - Treat Dockerfiles, compose files if reintroduced, reverse-proxy examples, Cloudflare-related examples, container publishing, and CI as security-sensitive operator work.
-- GitHub Actions workflows are not currently present. Do not create replacement CI unless the task explicitly asks for CI work.
+- GitHub Actions CI is present for Rust validation, Docker smoke testing, and scoped GHCR publishing. Do not create replacement CI unless the task explicitly asks for CI work.
 
 ## Validation
 

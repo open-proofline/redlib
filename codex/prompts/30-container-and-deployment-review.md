@@ -4,8 +4,7 @@ Review container, deployment, reverse-proxy, Cloudflare-related, and image-publi
 
 Default mode is review-only unless the maintainer explicitly asks for fixes.
 
-Do **not** rewrite Dockerfiles.
-Do **not** create replacement CI.
+Do **not** rewrite Dockerfiles or create replacement CI unless the maintainer explicitly scopes that work.
 Do **not** add deployment providers.
 Do **not** document private deployment topology.
 
@@ -53,6 +52,7 @@ Review:
 - environment variables
 - secret handling
 - generated image metadata
+- image tag policy and publish gates
 - documentation and examples
 
 ## Constraints
@@ -68,6 +68,7 @@ Review:
 - Do not expose admin/operator surfaces.
 - Do not imply production readiness, staffed operations, emergency response, or integration with Proofline safety/evidence/account systems.
 - Do not create replacement CI unless the task explicitly asks for CI work.
+- Do not create upstream-style Redlib releases or bare semver image tags for this fork unless a maintainer explicitly changes the release policy.
 - Separate generic upstreamable container hygiene from Proofline-specific deployment, branding, governance, or support changes.
 
 ## Output

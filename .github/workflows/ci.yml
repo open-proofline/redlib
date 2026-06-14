@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish image to GHCR
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      deployment_tag:
+        description: Optional extra deployment image tag
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/open-proofline/redlib
+  RUST_TOOLCHAIN: 1.96.0
+
+jobs:
+  rust:
+    name: Rust validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang cmake libclang-dev pkg-config
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal --component rustfmt,clippy
+          rustup default "${RUST_TOOLCHAIN}"
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Check
+        run: cargo check --locked
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+      - name: Build image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            REDLIB_IMAGE_PLATFORM=linux/amd64
+          load: true
+          push: false
+          provenance: false
+          tags: redlib:ci-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test image
+        run: |
+          set -euo pipefail
+
+          container_name=redlib-ci-smoke
+          cleanup() {
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          cleanup
+
+          docker run --rm -d --name "$container_name" -p 127.0.0.1:18080:8080 redlib:ci-smoke
+
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:18080/settings >/dev/null; then
+              exit 0
+            fi
+            if ! docker container inspect "$container_name" --format '{{.State.Running}}' 2>/dev/null | grep -q true; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker logs "$container_name"
+          exit 1
+
+  docker-publish:
+    name: Docker publish
+    runs-on: ubuntu-latest
+    needs:
+      - rust
+      - docker-build
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true') }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: image-tags
+        env:
+          DEPLOYMENT_TAG: ${{ inputs.deployment_tag || '' }}
+        run: |
+          set -euo pipefail
+
+          image="$(printf '%s' "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          short_sha="$(git rev-parse --short=12 HEAD)"
+          version="$(python3 -c 'import pathlib, sys, tomllib; data = tomllib.loads(pathlib.Path("Cargo.toml").read_text()); version = data.get("package", {}).get("version"); isinstance(version, str) and version or sys.exit("Cargo.toml package.version is missing"); print(version)')"
+
+          tag_re='^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'
+          validate_tag() {
+            if ! [[ "$1" =~ $tag_re ]]; then
+              echo "Invalid Docker tag: $1" >&2
+              exit 1
+            fi
+          }
+
+          tags=()
+          add_tag() {
+            validate_tag "$1"
+            tags+=("${image}:$1")
+          }
+
+          # upstream-<version> identifies the upstream Redlib base version from Cargo.toml,
+          # not a Proofline Redlib release.
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            add_tag "latest"
+            add_tag "main"
+            add_tag "sha-${short_sha}"
+            add_tag "upstream-${version}"
+          else
+            add_tag "sha-${short_sha}"
+            add_tag "upstream-${version}"
+            if [[ -n "$DEPLOYMENT_TAG" ]]; then
+              add_tag "$DEPLOYMENT_TAG"
+            fi
+          fi
+
+          {
+            echo "image=$image"
+            echo "short_sha=$short_sha"
+            echo "upstream_version=$version"
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            REDLIB_IMAGE_PLATFORM=linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.image-tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/open-proofline/redlib
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.image-tags.outputs.upstream_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

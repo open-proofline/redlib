@@ -1,3 +1,9 @@
-target
+.git
 .github
-Dockerfile*
+target
+
+.env
+.env.*
+!.env.example
+
+*.log
