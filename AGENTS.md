@@ -23,9 +23,8 @@
 - Templates live under `templates/`; static assets live under `static/`.
 - Inline Rust tests live in `src/`; there is no top-level `tests/` directory.
 - Dockerfiles are present at `Dockerfile`, `Dockerfile.alpine`, and `Dockerfile.ubuntu`.
-- Compose files are present at `compose.yaml` and `compose.dev.yaml`.
-- GitHub Actions workflows live under `.github/workflows/`.
-- Runtime and packaging examples include `.env.example`, `redlib.container`, `contrib/`, `heroku.yml`, `flake.nix`, and `seccomp-redlib.json`.
+- GitHub Actions workflows are not currently present; replacement CI is future work unless explicitly scoped.
+- Runtime and packaging examples include `.env.example`, `redlib.container`, `contrib/`, `flake.nix`, and `seccomp-redlib.json`.
 - The upstream remote, when present, should point at `redlib-org/redlib`; verify remotes before assuming branch or fork state.
 
 ## Commands
@@ -40,8 +39,6 @@ cargo clippy --all-targets --all-features
 cargo build --release
 git diff --check
 ```
-
-CI also uses `cargo nextest run` and `cargo clippy -- -D warnings`; use those when reviewing CI parity or larger Rust changes.
 
 Do not claim validation passed unless the command actually ran.
 
