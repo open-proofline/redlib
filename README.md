@@ -1,49 +1,77 @@
 # Redlib
 
-> An alternative private front-end to Reddit, with its origins in [Libreddit](https://github.com/libreddit/libreddit).
+> A privacy-focused front-end to Reddit, with its origins in [Libreddit](https://github.com/libreddit/libreddit).
+
+This repository is `open-proofline/redlib`, a Proofline-operated fork of
+[upstream Redlib](https://github.com/redlib-org/redlib) for a best-effort public
+community service. Upstream Redlib remains the source of truth for core Redlib
+behavior. Proofline-specific changes in this fork should stay small,
+transparent, and separate from changes that could be contributed upstream.
+
+This fork is separate from Proofline safety, evidence, account, mobile, and
+protocol systems. It does not provide emergency reliability, account-portal
+features, recording or capture workflows, trusted-contact decryption, key escrow,
+notifications, billing, or Proofline protocol behavior. Privacy language in this
+README describes proxying and application behavior; it is not an anonymity claim.
 
 ![screenshot](https://i.ibb.co/18vrdxk/redlib-rust.png)
 
 ---
 
-**10-second pitch:** Redlib is a private front-end like [Invidious](https://github.com/iv-org/invidious) but for Reddit. Browse the coldest takes of [r/unpopularopinion](https://farside.link/redlib/r/unpopularopinion) without being [tracked](#reddit).
+**10-second pitch:** Redlib is a privacy-focused front-end like [Invidious](https://github.com/iv-org/invidious) but for Reddit. Browse the coldest takes of [r/unpopularopinion](https://farside.link/redlib/r/unpopularopinion) with less direct browser exposure to Reddit.
 
 - 🚀 Fast: written in Rust for blazing-fast speeds and memory safety
-- ☁️ Light: no JavaScript, no ads, no tracking, no bloat
-- 🕵 Private: all requests are proxied through the server, including media
-- 🔒 Secure: strong [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) prevents browser requests to Reddit
+- ☁️ Light: no ads, no behavioral tracking, and no third-party or tracking JavaScript
+- 🕵 Proxying: Reddit API and media requests are handled through the Redlib server where supported
+- 🔒 Browser controls: a [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) restricts browser-initiated network access
 
 ---
 
 ## Table of Contents
 
 1. [Redlib](#redlib)
-2. [Instances](#instances)
-3. [About](#about)
+2. [Fork scope](#fork-scope)
+3. [Instances](#instances)
+4. [About](#about)
    - [Built with](#built-with)
    - [How is it different from other Reddit front ends?](#how-is-it-different-from-other-reddit-front-ends)
      - [Teddit](#teddit)
      - [Libreddit](#libreddit)
-4. [Comparison](#comparison)
+5. [Comparison](#comparison)
    - [Speed](#speed)
    - [Privacy](#privacy)
      - [Reddit](#reddit)
      - [Redlib](#redlib-1)
        - [Server](#server)
-5. [Deployment](#deployment)
+6. [Deployment](#deployment)
    - [Docker](#docker)
      - [Docker CLI](#docker-cli)
-   - Podman 
-      - Quadlets
-
+   - [Podman](#podman)
+     - [Quadlets](#quadlets)
    - [Binary](#binary)
      - [Running as a systemd service](#running-as-a-systemd-service)
    - [Building from source](#building-from-source)
-   - [Replit/Heroku/Glitch](#replit-heroku-glitch)
    - [launchd (macOS)](#launchd-macos)
-6. [Configuration](#configuration)
+7. [Configuration](#configuration)
    - [Instance settings](#instance-settings)
    - [Default user settings](#default-user-settings)
+
+---
+
+# Fork Scope
+
+This fork follows upstream Redlib for browsing behavior, templates, route
+semantics, and Reddit-facing behavior unless a local fork delta is called out
+explicitly. The fork-specific surface is limited to repository governance,
+Proofline community-service wording, CI and image publishing policy, and
+packaging examples for `ghcr.io/open-proofline/redlib`.
+
+Use upstream Redlib resources for generic Redlib issues, feature behavior, and
+source history. Use this fork's repository and GHCR package when you specifically
+need the Proofline-operated fork source or container image.
+
+Fork image tags use `upstream-<version>` to identify the Redlib package version
+from `Cargo.toml`. That tag is not a separate Proofline product release.
 
 ---
 
@@ -63,7 +91,7 @@ For information on instance uptime, see the [Uptime Robot status page](https://s
 # About
 
 > [!NOTE]
-> Find Redlib on 💬 [Matrix](https://matrix.to/#/#redlib:matrix.org), 🐋 [GHCR](https://github.com/open-proofline/redlib/pkgs/container/redlib), :octocat: [GitHub](https://github.com/redlib-org/redlib), and 🦊 [GitLab](https://gitlab.com/redlib/redlib).
+> Upstream Redlib resources: 💬 [Matrix](https://matrix.to/#/#redlib:matrix.org), :octocat: [GitHub](https://github.com/redlib-org/redlib), and 🦊 [GitLab](https://gitlab.com/redlib/redlib). Proofline fork resources: :octocat: [GitHub](https://github.com/open-proofline/redlib) and 🐋 [GHCR](https://github.com/open-proofline/redlib/pkgs/container/redlib).
 
 Redlib hopes to provide an easier way to browse Reddit, without the ads, trackers, and bloat. Redlib was inspired by other alternative front-ends to popular services such as [Invidious](https://github.com/iv-org/invidious) for YouTube, [Nitter](https://github.com/zedeus/nitter) for Twitter, and [Bibliogram](https://sr.ht/~cadence/bibliogram/) for Instagram.
 
@@ -74,7 +102,7 @@ Redlib currently implements most of Reddit's (signed-out) functionalities but st
 - [Rust](https://www.rust-lang.org/) - Programming language
 - [Hyper](https://github.com/hyperium/hyper) - HTTP server and client
 - [Askama](https://github.com/askama-rs/askama) - Templating engine
-- [Rustls](https://github.com/rustls/rustls) - TLS library
+- [wreq](https://github.com/0x676e67/wreq) - HTTP client with BoringSSL support
 
 ## How is it different from other Reddit front ends?
 
@@ -93,7 +121,7 @@ While originating as a fork of Libreddit, the name "Redlib" was adopted to avoid
 
 Several technical improvements have also been made, including:
 
-- **OAuth token spoofing**: To circumvent rate limits imposed by Reddit, OAuth token spoofing is used to mimick the most common iOS and Android clients. While spoofing both iOS and Android clients was explored, only the Android client was chosen due to content restrictions when using an anonymous iOS client.
+- **OAuth token spoofing**: To circumvent rate limits imposed by Reddit, OAuth token spoofing is used to mimic the most common iOS and Android clients. While spoofing both iOS and Android clients was explored, only the Android client was chosen due to content restrictions when using an unauthenticated iOS client.
 - **Token refreshing**: The authentication token is refreshed every 24 hours, emulating the behavior of the official Android app.
 - **HTTP header mimicking**: Efforts are made to send along as many of the official app's headers as possible to reduce the likelihood of Reddit's crackdown on Redlib's requests.
 
@@ -151,21 +179,44 @@ Results from Google PageSpeed Insights ([Redlib Report](https://pagespeed.web.de
 
 ### Redlib
 
-For transparency, I hope to describe all the ways Redlib handles user privacy.
+For transparency, this section describes how Redlib handles browser requests,
+upstream requests, caching, logging, and cookies. It does not mean Redlib makes
+users anonymous.
 
 #### Server
 
-- **Logging:** In production (when running the binary, hosting with docker, or using the official instances), Redlib logs nothing. When debugging (running from source without `--release`), Redlib logs post IDs fetched to aid with troubleshooting.
+- **Request forwarding:** Redlib fetches Reddit API responses and proxied media
+  server-side. For proxied content, Reddit and related media hosts receive
+  requests from the Redlib instance rather than a direct browser request. The
+  instance operator, network provider, reverse proxy, DNS provider, and upstream
+  services may still see traffic metadata or request details depending on the
+  deployment.
 
-- **Cookies:** Redlib uses optional cookies to store any configured settings in the settings menu. These are not cross-site cookies and the cookies hold no personal data.
+- **Caching:** Redlib uses in-memory caches for some upstream responses and sends
+  cache headers for static assets. Caching improves performance, but it is not a
+  privacy boundary.
+
+- **Logging:** Redlib does not add HTTP access logging by default. It does
+  initialize runtime logging and may emit startup, rate-limit, upstream request,
+  upstream error, and server error messages depending on build and runtime
+  logging configuration. Reverse proxies, container runtimes, hosting platforms,
+  or network providers may keep their own logs. Operators should treat raw logs
+  as sensitive and avoid publishing them.
+
+- **Cookies:** Redlib uses optional first-party cookies to store settings,
+  subscriptions, filters, and related preferences configured through the
+  settings UI. These are not cross-site cookies.
 
 ---
 
 # Deployment
 
-This section covers multiple ways of deploying Redlib. Using [Docker](#docker) is the supported container path for this fork.
+This section covers common ways to run Redlib. The maintained container image
+for this fork is `ghcr.io/open-proofline/redlib`, built from the root
+`Dockerfile`. Other runtime examples are convenience notes and should be reviewed
+against upstream Redlib and your own deployment requirements before use.
 
-For configuration options, see the [Configuration section](#Configuration).
+For configuration options, see the [Configuration section](#configuration).
 
 ## Docker
 
@@ -204,7 +255,7 @@ Stream logs from the Redlib container:
 ```bash
 docker logs -f redlib
 ```
-## Podman 
+## Podman
 
 [Podman](https://podman.io/) lets you run containerized applications in a rootless fashion. Containers are loosely isolated environments that are lightweight and contain everything needed to run the application, so there's no need to rely on what's installed on the host.
 
@@ -214,7 +265,7 @@ Container images for this Proofline-operated fork are published at `ghcr.io/open
 
 > [!IMPORTANT]
 > These instructions assume that you are on a systemd based distro with [podman](https://podman.io/). If not, follow these [instructions on podman's website](https://podman.io/docs/installation) for how to do so. 
-> It also assumes you have used `loginctl enable-linger <username>` to enable the service to start for your user without logging in. 
+> It also assumes you have used `loginctl enable-linger <username>` to enable the service to start for your user without logging in.
 
 Copy the `redlib.container` and `.env.example` files to `.config/containers/systemd/` and modify any relevant values (for example, the ports Redlib should listen on, renaming the .env file and editing its values, etc.).
 
@@ -238,15 +289,12 @@ systemctl --user status redlib.service
 
 ## Binary
 
-If you're on Linux, you can grab a binary from [the newest release](https://github.com/redlib-org/redlib/releases/latest) from GitHub.
+This fork does not publish separate binary releases. If you want an upstream
+Redlib binary, use [upstream Redlib releases](https://github.com/redlib-org/redlib/releases/latest)
+and verify the current version, asset name, and checksum there.
 
-Download the binary using [Wget](https://www.gnu.org/software/wget/):
-
-```bash
-wget https://github.com/redlib-org/redlib/releases/download/v0.31.0/redlib
-```
-
-Make the binary executable and change its ownership to `root`:
+After downloading an upstream binary, make it executable and change its ownership
+to `root` if you plan to install it system-wide:
 
 ```bash
 sudo chmod +x redlib && sudo chown root:root redlib
@@ -258,7 +306,7 @@ Copy the binary to `/usr/bin`:
 sudo cp ./redlib /usr/bin/redlib
 ```
 
-Deploy Redlib to `0.0.0.0:8080`:
+Start Redlib on the default listener (`[::]:8080` unless configured):
 
 ```bash
 redlib
@@ -294,20 +342,12 @@ Before=nginx.service
 
 ## Building from source
 
-To deploy Redlib with changes not yet included in the latest release, you can build the application from source.
+To run this fork from source:
 
 ```bash
-git clone https://github.com/redlib-org/redlib && cd redlib
+git clone https://github.com/open-proofline/redlib && cd redlib
 cargo run
 ```
-
-## Replit/Heroku
-
-> [!WARNING]
-> These are free hosting options, but they are _not_ private and will monitor server usage to prevent abuse. If you need a free and easy setup, this method may work best for you.
-
-<a href="https://repl.it/github/redlib-org/redlib"><img src="https://repl.it/badge/github/redlib-org/redlib" alt="Run on Repl.it" height="32" /></a>
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/redlib-org/redlib)
 
 ## launchd (macOS)
 
