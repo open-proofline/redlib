@@ -240,9 +240,6 @@ async fn main() {
 	});
 	app.at("/favicon.ico").get(|_| favicon().boxed());
 	app.at("/logo.png").get(|_| pwa_logo().boxed());
-	app
-		.at("/proofline-p-mark.svg")
-		.get(|_| resource(include_str!("../static/proofline-p-mark.svg"), "image/svg+xml", true).boxed());
 	app.at("/Inter.var.woff2").get(|_| font().boxed());
 	app.at("/touch-icon-iphone.png").get(|_| iphone_logo().boxed());
 	app.at("/apple-touch-icon.png").get(|_| iphone_logo().boxed());
