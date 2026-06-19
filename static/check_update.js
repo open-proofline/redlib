@@ -1,18 +1,27 @@
 async function checkInstanceUpdateStatus() {
+    const statusElement = document.getElementById('update-status');
+    const commitElement = document.getElementById('git_commit');
+    if (!statusElement || !commitElement) return;
+
     try {
         const response = await fetch('/commits.atom');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         const text = await response.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(text, "application/xml");
         const entries = xmlDoc.getElementsByTagName('entry');
-        const localCommit = document.getElementById('git_commit').dataset.value;
+        const localCommit = commitElement.dataset.value.trim();
 
         let statusMessage = '';
 
-        if (entries.length > 0) {
+        if (localCommit === '' || localCommit === 'dev') {
+            statusMessage = '⚠️ Unable to determine this instance commit.';
+        } else if (entries.length > 0) {
             const commitHashes = Array.from(entries).map(entry => {
                 const id = entry.getElementsByTagName('id')[0].textContent;
-                return id.split('/').pop();
+                return id.split('/').pop().trim();
             });
 
             const commitIndex = commitHashes.indexOf(localCommit);
@@ -21,36 +30,41 @@ async function checkInstanceUpdateStatus() {
                 statusMessage = '✅ Instance is up to date.';
             } else if (commitIndex > 0) {
                 statusMessage = `⚠️ This instance is not up to date and is ${commitIndex} commits old. Test and confirm on an up-to-date instance before reporting.`;
-                document.getElementById('error-446').remove();
+                const error446 = document.getElementById('error-446');
+                if (error446) error446.remove();
             } else {
-                statusMessage = `⚠️ This instance is not up to date and is at least ${commitHashes.length} commits old. Test and confirm on an up-to-date instance before reporting.`;
-                document.getElementById('error-446').remove();
+                statusMessage = '⚠️ Unable to confirm this instance commit against the latest Redlib commit feed.';
             }
         } else {
             statusMessage = '⚠️ Unable to fetch commit information.';
         }
 
-        document.getElementById('update-status').innerText = statusMessage;
+        statusElement.innerText = statusMessage;
     } catch (error) {
         console.error('Error fetching commits:', error);
-        document.getElementById('update-status').innerText = '⚠️ Error checking update status: ' + error;
+        statusElement.innerText = '⚠️ Error checking update status: ' + error;
     }
 }
 
 async function checkOtherInstances() {
+    const randomInstanceElement = document.getElementById('random-instance');
+    if (!randomInstanceElement) return;
+
     try {
         const response = await fetch('/instances.json');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
         const instances = window.location.host.endsWith('.onion') ? data.instances.filter(i => i.onion) : data.instances.filter(i => i.url);
         if (instances.length == 0) return;
         const randomInstance = instances[Math.floor(Math.random() * instances.length)];
         const instanceUrl = randomInstance.url ?? randomInstance.onion;
         // Set the href of the <a> tag to the instance URL with path included
-        document.getElementById('random-instance').href = instanceUrl + window.location.pathname;
-        document.getElementById('random-instance').innerText = "Visit Random Instance";
+        randomInstanceElement.href = instanceUrl + window.location.pathname;
+        randomInstanceElement.innerText = "Visit Random Instance";
     } catch (error) {
         console.error('Error fetching instances:', error);
-        document.getElementById('update-status').innerText = '⚠️ Error checking other instances: ' + error;
     }
 }
 
