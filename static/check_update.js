@@ -33,7 +33,7 @@ async function checkInstanceUpdateStatus() {
                 const error446 = document.getElementById('error-446');
                 if (error446) error446.remove();
             } else {
-                statusMessage = '⚠️ Unable to confirm this instance commit against the latest Redlib commit feed.';
+                statusMessage = '⚠️ Unable to confirm this instance commit against this fork\'s latest commit feed.';
             }
         } else {
             statusMessage = '⚠️ Unable to fetch commit information.';

@@ -76,6 +76,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             REDLIB_IMAGE_PLATFORM=linux/amd64
+            REDLIB_GIT_COMMIT=${{ github.sha }}
           load: true
           push: false
           provenance: false
@@ -191,6 +192,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             REDLIB_IMAGE_PLATFORM=linux/amd64
+            REDLIB_GIT_COMMIT=${{ github.sha }}
           push: true
           provenance: false
           tags: ${{ steps.image-tags.outputs.tags }}
