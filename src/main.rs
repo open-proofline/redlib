@@ -80,12 +80,11 @@ async fn resource(body: &str, content_type: &str, cache: bool) -> Result<Respons
 		.body(body.to_string().into())
 		.unwrap_or_default();
 
-	let cache_control = if cache {
-		HeaderValue::from_static("public, max-age=1209600, s-maxage=86400")
-	} else {
-		HeaderValue::from_static("no-store")
-	};
-	res.headers_mut().insert("Cache-Control", cache_control);
+	if cache {
+		if let Ok(val) = HeaderValue::from_str("public, max-age=1209600, s-maxage=86400") {
+			res.headers_mut().insert("Cache-Control", val);
+		}
+	}
 
 	Ok(res)
 }
